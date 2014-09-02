@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
+<title>Touch Clock</title>
+</head>
+<body>
+<canvas id="Clock" width="320" height="320">Sorry, this browser doesn't
+support the &lt;canvas/&gt; element.</canvas>
+<div id="Time"></div>
+<script src="TouchClock.js"></script>
+<script>
+
+"use strict";
+
+window.onload = function()
+{
+	function update()
+	{
+		time.innerHTML =
+			tc.getStartTimeAsString()+" - "+
+			tc.getStopTimeAsString();
+	}
+
+	var time = document.getElementById( "Time" ),
+		tc = new TouchClock(
+			document.getElementById( "Clock" ),
+			update );
+
+	update();
+}
+
+</script>
+</body>
