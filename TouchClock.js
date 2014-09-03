@@ -337,8 +337,8 @@ function TouchClock( canvas, callback )
 				document.documentElement :
 				document.body;
 
-		offsetLeft += body.scrollLeft;
-		offsetTop += body.scrollTop;
+		offsetLeft -= body.scrollLeft;
+		offsetTop -= body.scrollTop;
 
 		for( var n = 0; n < pointerLength; ++n )
 		{
@@ -360,6 +360,9 @@ function TouchClock( canvas, callback )
 
 	function pointerMove( ev )
 	{
+		if( pointerLength < 1 )
+			return;
+
 		var r = setPointers( ev, pointerLength );
 
 		for( var n = pointerLength; n--; )
