@@ -38,6 +38,8 @@ function TouchClock( canvas, callback )
 		height,
 		centerX,
 		centerY,
+		pageXOffset = 0,
+		pageYOffset = 0,
 		radiusDial,
 		radiusCenter,
 		radiusInnerHandle,
@@ -50,7 +52,8 @@ function TouchClock( canvas, callback )
 		pointerLength = 0,
 		pointerX = [],
 		pointerY = [],
-		pointerGrabbed = [];
+		pointerGrabbed = [],
+		handsGrabbed = 0;
 
 	function drawCenter()
 	{
@@ -287,13 +290,15 @@ function TouchClock( canvas, callback )
 	function setPointers( ev, down )
 	{
 		var e = ev || event;
+var py = 0;
 
-		if( !down )
+		if( down < 1 )
 		{
 			// process other touches
-			if( e.touches &&
+			/*if( pointerLength > 0 &&
+				e.touches &&
 				(down = e.touches.length) )
-				return setPointerss( e, down );
+				return setPointers( e, down );*/
 
 			pointerLength = 0;
 		}
@@ -305,8 +310,8 @@ function TouchClock( canvas, callback )
 			{
 				var t = e.touches[n];
 
-				pointerX[n] = t.pageX;
-				pointerY[n] = t.pageY;
+				pointerX[n] = t.clientX;
+				py = pointerY[n] = t.clientY;
 			}
 		}
 		else if( typeof e.clientX !== "undefined" )
@@ -323,7 +328,7 @@ function TouchClock( canvas, callback )
 		}
 
 		// this needs to be done every time since the
-		// offset may change due to transitions
+		// offset may change due to CSS transitions
 		var offsetLeft = 0,
 			offsetTop = 0;
 
@@ -333,37 +338,47 @@ function TouchClock( canvas, callback )
 			offsetTop += e.offsetTop;
 		}
 
-		var body = typeof document.documentElement !== 'undefined' ?
-				document.documentElement :
-				document.body;
-
-		offsetLeft -= body.scrollLeft;
-		offsetTop -= body.scrollTop;
+		offsetLeft -= pageXOffset;
+		offsetTop -= pageYOffset;
 
 		for( var n = 0; n < pointerLength; ++n )
 		{
 			pointerX[n] = (pointerX[n]-offsetLeft)*ratio | 0;
 			pointerY[n] = (pointerY[n]-offsetTop)*ratio | 0;
 		}
+	}
 
-		ev.preventDefault();
+	function assingPointersToHands()
+	{
+		for( var n = pointerLength; n--; )
+			if( (pointerGrabbed[n] = handAt( pointerX[n], pointerY[n] )) )
+				++handsGrabbed;
+	}
+
+	function consumeEvent( ev )
+	{
+		(ev || event).preventDefault();
 		return false;
 	}
 
 	function pointerUp( ev )
 	{
-		var r = setPointers( ev, 0 );
+		if( handsGrabbed < 1 )
+			return true;
+
+		setPointers( ev, 0 );
+		assingPointersToHands();
 		draw();
 
-		return r;
+		return consumeEvent( ev );
 	}
 
 	function pointerMove( ev )
 	{
-		if( pointerLength < 1 )
-			return;
+		if( handsGrabbed < 1 )
+			return true;
 
-		var r = setPointers( ev, pointerLength );
+		setPointers( ev, pointerLength );
 
 		for( var n = pointerLength; n--; )
 		{
@@ -399,26 +414,33 @@ function TouchClock( canvas, callback )
 			}
 		}
 
-		if( pointerLength )
-		{
-			setTimeAndDuration();
-			draw();
-		}
+		setTimeAndDuration();
+		draw();
 
-		return r;
+		return consumeEvent( ev );
 	}
 
 	function pointerDown( ev )
 	{
-		var r = setPointers( ev, 1 );
+		handsGrabbed = 0;
 
-		for( var n = pointerLength; n--; )
-			pointerGrabbed[n] = handAt( pointerX[n], pointerY[n] );
+		setPointers( ev, 1 );
+		assingPointersToHands();
 
-		if( pointerLength )
-			draw();
+		if( handsGrabbed < 1 )
+			return true;
 
-		return r;
+		draw();
+
+		return consumeEvent( ev );
+	}
+
+	function recordScrollPosition( ev )
+	{
+		pageXOffset = window.pageXOffset;
+		pageYOffset = window.pageYOffset;
+
+		return consumeEvent( ev );
 	}
 
 	function resize()
@@ -472,6 +494,14 @@ function TouchClock( canvas, callback )
 		am = h < 12;
 	}
 
+	function addEventListener( e, name, handler )
+	{
+		if( "addEventListener" in e )
+			e.addEventListener( name, handler, true );
+		else
+			e.attachEvent( "on"+name, handler );
+	}
+
 	function init()
 	{
 		setHands( tc.hour, tc.minute, tc.duration );
@@ -485,17 +515,19 @@ function TouchClock( canvas, callback )
 				ctx.backingStorePixelRatio ||
 				1);
 
-		canvas.onmousedown = pointerDown;
-		canvas.onmousemove = pointerMove;
-		canvas.onmouseup = pointerUp;
-		canvas.onmouseout = pointerUp;
+		addEventListener( canvas, "mousedown", pointerDown );
+		addEventListener( canvas, "mousemove", pointerMove );
+		addEventListener( canvas, "mouseup", pointerUp );
+		addEventListener( canvas, "mouseout", pointerUp );
 
 		if( "ontouchstart" in canvas )
 		{
-			canvas.ontouchstart = pointerDown;
-			canvas.ontouchmove = pointerMove;
-			canvas.ontouchend = pointerUp;
+			addEventListener( canvas, "touchstart", pointerDown );
+			addEventListener( canvas, "touchmove", pointerMove );
+			addEventListener( canvas, "touchend", pointerUp );
 		}
+
+		addEventListener( document, "scroll", recordScrollPosition );
 	}
 
 	init();
