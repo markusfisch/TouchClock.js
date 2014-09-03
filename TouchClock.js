@@ -212,6 +212,26 @@ function TouchClock( canvas, callback )
 		return s;
 	}
 
+	function getStartTime()
+	{
+		return {
+			hour: tc.hour,
+			minute: tc.minute
+		};
+	}
+
+	function getStopTime()
+	{
+		var d = tc.minute+tc.duration,
+			m = d % 60,
+			h = tc.hour+(d/60 | 0);
+
+		return {
+			hour: h,
+			minute: m
+		};
+	}
+
 	function getStartTimeAsString()
 	{
 		return pad( tc.hour, 2 )+":"+pad( tc.minute, 2 );
@@ -219,11 +239,9 @@ function TouchClock( canvas, callback )
 
 	function getStopTimeAsString()
 	{
-		var d = tc.minute+tc.duration,
-			m = d % 60,
-			h = tc.hour+(d/60 | 0);
+		var t = getStopTime();
 
-		return pad( h, 2 )+":"+pad( m, 2 );
+		return pad( t.hour, 2 )+":"+pad( t.minute, 2 );
 	}
 
 	function setTimeAndDuration()
@@ -287,21 +305,45 @@ function TouchClock( canvas, callback )
 			{
 				var t = e.touches[n];
 
-				pointerX[n] = t.pageX*ratio | 0;
-				pointerY[n] = t.pageY*ratio | 0;
+				pointerX[n] = t.pageX;
+				pointerY[n] = t.pageY;
 			}
 		}
 		else if( typeof e.clientX !== "undefined" )
 		{
-			pointerX[0] = e.clientX*ratio | 0;
-			pointerY[0] = e.clientY*ratio | 0;
+			pointerX[0] = e.clientX;
+			pointerY[0] = e.clientY;
 			pointerLength = 1;
 		}
 		else if( typeof e.pageX !== "undefined" )
 		{
-			pointerX[0] = e.pageX*ratio | 0;
-			pointerY[0] = e.pageY*ratio | 0;
+			pointerX[0] = e.pageX;
+			pointerY[0] = e.pageY;
 			pointerLength = 1;
+		}
+
+		// this needs to be done every time since the
+		// offset may change due to transitions
+		var offsetLeft = 0,
+			offsetTop = 0;
+
+		for( var e = canvas; e; e = e.offsetParent )
+		{
+			offsetLeft += e.offsetLeft;
+			offsetTop += e.offsetTop;
+		}
+
+		var body = typeof document.documentElement !== 'undefined' ?
+				document.documentElement :
+				document.body;
+
+		offsetLeft += body.scrollLeft;
+		offsetTop += body.scrollTop;
+
+		for( var n = 0; n < pointerLength; ++n )
+		{
+			pointerX[n] = (pointerX[n]-offsetLeft)*ratio | 0;
+			pointerY[n] = (pointerY[n]-offsetTop)*ratio | 0;
 		}
 
 		ev.preventDefault();
@@ -460,6 +502,8 @@ function TouchClock( canvas, callback )
 	return {
 		getStartTimeAsString: getStartTimeAsString,
 		getStopTimeAsString: getStopTimeAsString,
+		getStartTime: getStartTime,
+		getStopTime: getStopTime,
 		resize: resize,
 		draw: draw
 	};
