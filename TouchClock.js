@@ -249,12 +249,12 @@ function TouchClock( canvas, callback )
 
 	function setTimeAndDuration()
 	{
-		tc.hour = Math.round(
+		tc.hour = Math.floor(
 			getAngle( hands.hour.angle )*
 			hourRad+
 			(am ? 0 : 12) ) % 24;
 
-		tc.minute = Math.round(
+		tc.minute = Math.floor(
 			getAngle( hands.minute.angle )*
 			minuteRad ) % 60;
 
@@ -290,15 +290,14 @@ function TouchClock( canvas, callback )
 	function setPointers( ev, down )
 	{
 		var e = ev || event;
-var py = 0;
 
 		if( down < 1 )
 		{
 			// process other touches
-			/*if( pointerLength > 0 &&
+			if( pointerLength > 0 &&
 				e.touches &&
 				(down = e.touches.length) )
-				return setPointers( e, down );*/
+				return setPointers( e, down );
 
 			pointerLength = 0;
 		}
