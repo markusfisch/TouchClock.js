@@ -1,9 +1,6 @@
 "use strict";
 
 TouchClock.prototype.useDuration = true;
-TouchClock.prototype.hour = new Date().getHours();
-TouchClock.prototype.minute = new Date().getMinutes();
-TouchClock.prototype.duration = 120;
 TouchClock.prototype.dialColor = "#ccc";
 TouchClock.prototype.handColor = "#111";
 TouchClock.prototype.durationColor = "#4b9";
@@ -17,6 +14,7 @@ Math.TAU = Math.TAU || Math.PI*2;
  * A clock you can touch to set a time and a duration
  *
  * @param canvas - canvas element
+ * @param callback - function to call for every update (optional)
  */
 function TouchClock( canvas, callback )
 {
@@ -205,7 +203,32 @@ function TouchClock( canvas, callback )
 		return (a+Math.TAU) % Math.TAU;
 	}
 
-	function pad( num, size )
+	function getHourAngle( h, m )
+	{
+		return radPerMinutesPerHour*((h > 12 ? h-12 : h)*60+m);
+	}
+
+	function getMinuteAngle( m )
+	{
+		return radMinute*m;
+	}
+
+	function getDurationAngle( h, m, d )
+	{
+		return getHourAngle( h+d/60, m );
+	}
+
+	function getAngleDifference( d )
+	{
+		var r = Math.abs( d );
+
+		if( Math.TAU-r < r )
+			d = -d;
+
+		return d;
+	}
+
+	function padNumber( num, size )
 	{
 		var s = num+"";
 
@@ -218,16 +241,16 @@ function TouchClock( canvas, callback )
 	function getStartTime()
 	{
 		return {
-			hour: tc.hour,
-			minute: tc.minute
+			hour: hands.hour.value,
+			minute: hands.minute.value
 		};
 	}
 
 	function getStopTime()
 	{
-		var d = tc.minute+tc.duration,
+		var d = hands.minute.value+hands.duration.value,
 			m = d % 60,
-			h = tc.hour+(d/60 | 0);
+			h = hands.hour.value+(d/60 | 0);
 
 		return {
 			hour: h % 24,
@@ -239,17 +262,17 @@ function TouchClock( canvas, callback )
 	{
 		var t = getStartTime();
 
-		return pad( t.hour, 2 )+":"+pad( t.minute, 2 );
+		return padNumber( t.hour, 2 )+":"+padNumber( t.minute, 2 );
 	}
 
 	function getStopTimeAsString()
 	{
 		var t = getStopTime();
 
-		return pad( t.hour, 2 )+":"+pad( t.minute, 2 );
+		return padNumber( t.hour, 2 )+":"+padNumber( t.minute, 2 );
 	}
 
-	function calculateDuration()
+	function setDurationFromAngle()
 	{
 		var d = getAngle( hands.duration.angle ),
 			h = getAngle( hands.hour.angle );
@@ -257,25 +280,123 @@ function TouchClock( canvas, callback )
 		while( d < h )
 			d += Math.TAU;
 
-		tc.duration = Math.round(
+		hands.duration.value = Math.round(
 			minutesPerHourToRad*(d-h) );
 	}
 
-	function setTimeAndDuration()
+	function setHourFromAngle()
 	{
-		tc.hour = Math.floor(
+		hands.hour.value = Math.floor(
 			getAngle( hands.hour.angle )*
 			hourRad+
 			(am ? 0 : 12) ) % 24;
+	}
 
-		tc.minute = Math.floor(
+	function setMinuteFromAngle()
+	{
+		hands.minute.value = Math.floor(
 			getAngle( hands.minute.angle )*
 			minuteRad ) % 60;
+	}
 
-		calculateDuration();
+	function setHourAngle()
+	{
+		hands.hour.angle = getHourAngle(
+			hands.hour.value,
+			hands.minute.value );
+	}
 
-		if( callback )
-			callback();
+	function setMinuteAngle()
+	{
+		hands.minute.angle = getMinuteAngle(
+			hands.minute.value );
+	}
+
+	function setDurationAngle()
+	{
+		hands.duration.angle = getAngle(
+			hands.hour.angle+
+			radPerMinutesPerHour*hands.duration.value );
+	}
+
+	function setAngles()
+	{
+		setHourAngle();
+		setMinuteAngle();
+
+		if( tc.useDuration )
+			setDurationAngle();
+	}
+
+	function addHours( h )
+	{
+		h += hands.hour.value;
+
+		while( h < 0 )
+			h += 24;
+
+		h %= 24;
+
+		hands.hour.value = h;
+		setHourAngle();
+	}
+
+	function moveHands()
+	{
+		for( var n = pointerLength; n--; )
+		{
+			var hand = pointerGrabbed[n];
+
+			if( !hand )
+				continue;
+
+			hand.angle = Math.atan2(
+				pointerY[n]-centerY,
+				pointerX[n]-centerX )+Math.PI2;
+
+			if( hand === hands.hour )
+			{
+				setHourFromAngle();
+
+				var a = getAngle( hand.angle ),
+					d = getAngleDifference( a-getAngle( hand.last ) );
+
+				if( tc.useDuration &&
+					handsGrabbed == 1 )
+					setDurationAngle();
+
+				if( (d > 0 && hand.last > a) ||
+					(d < 0 && hand.last < a) )
+					am ^= true;
+
+				hand.last = a;
+			}
+			else if( hand === hands.minute )
+			{
+				setMinuteFromAngle();
+
+				if( handsGrabbed == 1 )
+					setHourAngle();
+
+				var a = getAngle( hand.angle ),
+					d = getAngleDifference( a-getAngle( hand.last ) );
+
+				if( d > 0 && hand.last > a )
+					addHours( 1 );
+				else if( d < 0 && hand.last < a )
+					addHours( -1 );
+
+				hand.last = a;
+
+				if( tc.useDuration &&
+					handsGrabbed == 1 )
+					setDurationAngle();
+			}
+			else if( hand === hands.duration )
+			{
+				setDurationFromAngle();
+			}
+		}
 	}
 
 	function handAt( x, y )
@@ -292,6 +413,13 @@ function TouchClock( canvas, callback )
 		}
 
 		return null;
+	}
+
+	function assignPointersToHands()
+	{
+		for( var n = pointerLength; n--; )
+			if( (pointerGrabbed[n] = handAt( pointerX[n], pointerY[n] )) )
+				++handsGrabbed;
 	}
 
 	function setPointers( ev, down )
@@ -354,13 +482,6 @@ function TouchClock( canvas, callback )
 		}
 	}
 
-	function assingPointersToHands()
-	{
-		for( var n = pointerLength; n--; )
-			if( (pointerGrabbed[n] = handAt( pointerX[n], pointerY[n] )) )
-				++handsGrabbed;
-	}
-
 	function consumeEvent( ev )
 	{
 		(ev || event).preventDefault();
@@ -372,8 +493,10 @@ function TouchClock( canvas, callback )
 		if( handsGrabbed < 1 )
 			return true;
 
+		handsGrabbed = 0;
+
+		setAngles();
 		setPointers( ev, 0 );
-		assingPointersToHands();
 		draw();
 
 		return consumeEvent( ev );
@@ -385,42 +508,11 @@ function TouchClock( canvas, callback )
 			return true;
 
 		setPointers( ev, pointerLength );
+		moveHands();
 
-		for( var n = pointerLength; n--; )
-		{
-			var hand = pointerGrabbed[n];
+		if( callback )
+			callback();
 
-			if( !hand )
-				continue;
-
-			hand.angle = Math.atan2(
-				pointerY[n]-centerY,
-				pointerX[n]-centerX )+Math.PI2;
-
-			if( hand === hands.hour )
-			{
-				var a = getAngle( hand.angle ),
-					d = a-getAngle( hand.last ),
-					r = Math.abs( d );
-
-				if( pointerLength == 1 )
-					hands.duration.angle =
-						a+
-						getAngle( hands.duration.angle )-
-						getAngle( hand.last );
-
-				if( Math.TAU-r < r )
-					d = -d;
-
-				if( (d > 0 && hand.last > a) ||
-					(d < 0 && hand.last < a) )
-					am ^= true;
-
-				hand.last = a;
-			}
-		}
-
-		setTimeAndDuration();
 		draw();
 
 		return consumeEvent( ev );
@@ -431,7 +523,7 @@ function TouchClock( canvas, callback )
 		handsGrabbed = 0;
 
 		setPointers( ev, 1 );
-		assingPointersToHands();
+		assignPointersToHands();
 
 		if( handsGrabbed < 1 )
 			return true;
@@ -476,33 +568,32 @@ function TouchClock( canvas, callback )
 		hands.duration.radius = radiusDial*.6;
 	}
 
-	function getHourAngle( h, m )
-	{
-		return radPerMinutesPerHour*((h > 12 ? h-12 : h)*60+m);
-	}
-
-	function getMinuteAngle( m )
-	{
-		return radMinute*m;
-	}
-
-	function getDurationAngle( h, m, d )
-	{
-		return getHourAngle( h+d/60, m );
-	}
-
 	function setHands( h, m, dh, dm )
 	{
-		hands.hour.angle = hands.hour.last = getHourAngle( h, m );
-		hands.minute.angle = hands.minute.last = getMinuteAngle( m );
-
-		hands.duration.angle = typeof dm !== 'undefined' ?
-			getHourAngle( dh, dm ) :
-			getDurationAngle( h, m, dh );
+		hands.hour.value = h;
+		hands.minute.value = m;
 
 		am = h < 12;
 
-		calculateDuration();
+		if( tc.useDuration )
+		{
+			dh = dh || 120;
+
+			if( typeof dm === 'undefined' )
+				hands.duration.value = dh;
+			else
+			{
+				hands.duration.angle = getHourAngle( dh, dm );
+				setDurationFromAngle();
+			}
+		}
+
+		setAngles();
+
+		hands.hour.last = hands.hour.angle;
+		hands.minute.last = hands.minute.angle;
+
+		draw();
 	}
 
 	function addEventListener( e, name, handler )
@@ -515,8 +606,6 @@ function TouchClock( canvas, callback )
 
 	function init()
 	{
-		setHands( tc.hour, tc.minute, tc.duration );
-
 		ratio =
 			(window.devicePixelRatio || 1)/
 			(ctx.webkitBackingStorePixelRatio ||
@@ -543,7 +632,12 @@ function TouchClock( canvas, callback )
 
 	init();
 	resize();
-	draw();
+
+	var now = new Date();
+	setHands(
+		now.getHours(),
+		now.getMinutes(),
+		120 );
 
 	return {
 		getStartTimeAsString: getStartTimeAsString,
