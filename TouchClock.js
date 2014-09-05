@@ -627,6 +627,9 @@ function TouchClock( canvas, callback )
 			addEventListener( canvas, "touchend", pointerUp );
 		}
 
+		if( window.navigator.msPointerEnabled )
+			canvas.style.msTouchAction = "none";
+
 		addEventListener( document, "scroll", recordScrollPosition );
 	}
 
