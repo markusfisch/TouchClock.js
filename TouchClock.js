@@ -170,7 +170,7 @@ function TouchClock( canvas, callback )
 		ctx.beginPath();
 
 		for( var a = 0, n = 0, r1 = radiusDial*.85, r2 = radiusDial*.95;
-			a < Math.TAU;
+			n < 60;
 			a += radMinute, ++n )
 		{
 			var cos = Math.cos( a ),
