@@ -3,6 +3,9 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0"/>
 <title>Touch Clock</title>
+<style>
+.Duration { color: #4b9; }
+</style>
 </head>
 <body>
 <canvas id="Clock" width="320" height="320">Sorry, this browser doesn't
@@ -18,8 +21,9 @@ window.onload = function()
 	function update()
 	{
 		time.innerHTML =
-			tc.getStartTimeAsString()+" - "+
-			tc.getStopTimeAsString();
+			tc.getStartTimeAsString()+" &#x2192; "+
+			tc.getStopTimeAsString()+'<br/><span class="Duration">'+
+			tc.getDurationAsString()+"</span>";
 	}
 
 	var time = document.getElementById( "Time" ),
