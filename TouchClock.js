@@ -72,11 +72,21 @@ function TouchClock( canvas, callback )
 	{
 		var isDuration = hand === hands.duration,
 			a = hand.angle-Math.PI2,
+			cos = Math.cos( a ),
+			sin = Math.sin( a ),
 			r = hand.radius,
-			vx = Math.cos( a )*r,
-			vy = Math.sin( a )*r,
-			x = centerX+vx,
-			y = centerY+vy;
+			mr = r*.25,
+			sr = tc.handWidth*3*ratio,
+			x = centerX+cos*r,
+			y = centerY+sin*r,
+			mx = centerX+cos*mr,
+			my = centerX+sin*mr,
+			scos = cos*sr,
+			ssin = sin*sr,
+			lx = mx-ssin,
+			ly = my+scos,
+			rx = mx+ssin,
+			ry = my-scos;
 
 		hand.x = x;
 		hand.y = y;
@@ -85,8 +95,11 @@ function TouchClock( canvas, callback )
 		{
 			ctx.beginPath();
 			ctx.moveTo( centerX | 0, centerY | 0 );
+			ctx.lineTo( lx | 0, ly | 0 );
 			ctx.lineTo( x | 0, y | 0 );
-			ctx.stroke();
+			ctx.lineTo( rx | 0, ry | 0 );
+			ctx.closePath();
+			ctx.fill();
 		}
 
 		ctx.globalAlpha = tc.alpha;
