@@ -70,18 +70,24 @@ function TouchClock( canvas, callback )
 
 	function drawHand( hand )
 	{
-		var a = hand.angle-Math.PI2,
+		var isDuration = hand === hands.duration,
+			a = hand.angle-Math.PI2,
 			r = hand.radius,
-			x = centerX+Math.cos( a )*r,
-			y = centerY+Math.sin( a )*r;
+			vx = Math.cos( a )*r,
+			vy = Math.sin( a )*r,
+			x = centerX+vx,
+			y = centerY+vy;
 
 		hand.x = x;
 		hand.y = y;
 
-		ctx.beginPath();
-		ctx.moveTo( centerX | 0, centerY | 0 );
-		ctx.lineTo( x | 0, y | 0 );
-		ctx.stroke();
+		if( !isDuration )
+		{
+			ctx.beginPath();
+			ctx.moveTo( centerX | 0, centerY | 0 );
+			ctx.lineTo( x | 0, y | 0 );
+			ctx.stroke();
+		}
 
 		ctx.globalAlpha = tc.alpha;
 		ctx.beginPath();
@@ -136,6 +142,17 @@ function TouchClock( canvas, callback )
 		ctx.globalAlpha = 1;
 
 		ctx.lineWidth = tc.handWidth*ratio;
+
+		ctx.beginPath();
+		ctx.arc(
+			centerX | 0,
+			centerY | 0,
+			hands.duration.radius,
+			a1,
+			a2,
+			false );
+		ctx.stroke();
+
 		drawHand( hands.duration );
 	}
 
@@ -258,6 +275,11 @@ function TouchClock( canvas, callback )
 		};
 	}
 
+	function getDuration()
+	{
+		return hands.duration.value;
+	}
+
 	function getStartTimeAsString()
 	{
 		var t = getStartTime();
@@ -270,6 +292,15 @@ function TouchClock( canvas, callback )
 		var t = getStopTime();
 
 		return padNumber( t.hour, 2 )+":"+padNumber( t.minute, 2 );
+	}
+
+	function getDurationAsString()
+	{
+		var d = hands.duration.value,
+			m = d % 60,
+			h = (d/60 | 0) % 24;
+
+		return padNumber( h, 2 )+":"+padNumber( m, 2 );
 	}
 
 	function setDurationFromAngle()
@@ -564,8 +595,8 @@ function TouchClock( canvas, callback )
 		radiusHandle = radiusCenter*4;
 
 		hands.hour.radius = radiusDial*.4;
-		hands.minute.radius = radiusDial*.8;
 		hands.duration.radius = radiusDial*.6;
+		hands.minute.radius = radiusDial*.8;
 	}
 
 	function setHands( h, m, dh, dm )
@@ -645,8 +676,10 @@ function TouchClock( canvas, callback )
 	return {
 		getStartTimeAsString: getStartTimeAsString,
 		getStopTimeAsString: getStopTimeAsString,
+		getDurationAsString: getDurationAsString,
 		getStartTime: getStartTime,
 		getStopTime: getStopTime,
+		getDuration: getDuration,
 		setHands: setHands,
 		resize: resize,
 		draw: draw
