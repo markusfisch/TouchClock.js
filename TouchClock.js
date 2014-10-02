@@ -2,7 +2,8 @@
 
 TouchClock.prototype.useDuration = true;
 TouchClock.prototype.dialColor = "#ccc";
-TouchClock.prototype.handColor = "#111";
+TouchClock.prototype.hourColor = "#111";
+TouchClock.prototype.minuteColor = "#111";
 TouchClock.prototype.durationColor = "#4b9";
 TouchClock.prototype.handWidth = 2;
 TouchClock.prototype.alpha = .2;
@@ -55,7 +56,7 @@ function TouchClock( canvas, callback )
 
 	function drawCenter()
 	{
-		ctx.fillStyle = tc.handColor;
+		ctx.fillStyle = tc.hourColor;
 
 		ctx.beginPath();
 		ctx.arc(
@@ -175,11 +176,15 @@ function TouchClock( canvas, callback )
 			drawDuration();
 
 		ctx.lineWidth = tc.handWidth*ratio;
-		ctx.fillStyle = tc.handColor;
-		ctx.strokeStyle = tc.handColor;
 
+		ctx.fillStyle = tc.hourColor;
+		ctx.strokeStyle = tc.hourColor
 		drawHand( hands.hour );
+
+		ctx.fillStyle = tc.minuteColor;
+		ctx.strokeStyle = tc.minuteColor;
 		drawHand( hands.minute );
+
 		ctx.lineWidth = 1;
 	}
 
