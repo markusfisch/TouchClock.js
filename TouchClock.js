@@ -69,39 +69,10 @@ function TouchClock( canvas, callback )
 		ctx.fill();
 	}
 
-	function drawHand( hand )
+	function drawHandle( hand )
 	{
-		var isDuration = hand === hands.duration,
-			a = hand.angle-Math.PI2,
-			cos = Math.cos( a ),
-			sin = Math.sin( a ),
-			r = hand.radius,
-			mr = r*.25,
-			sr = tc.handWidth*3*ratio,
-			x = centerX+cos*r,
-			y = centerY+sin*r,
-			mx = centerX+cos*mr,
-			my = centerX+sin*mr,
-			scos = cos*sr,
-			ssin = sin*sr,
-			lx = mx-ssin,
-			ly = my+scos,
-			rx = mx+ssin,
-			ry = my-scos;
-
-		hand.x = x;
-		hand.y = y;
-
-		if( !isDuration )
-		{
-			ctx.beginPath();
-			ctx.moveTo( centerX | 0, centerY | 0 );
-			ctx.lineTo( lx | 0, ly | 0 );
-			ctx.lineTo( x | 0, y | 0 );
-			ctx.lineTo( rx | 0, ry | 0 );
-			ctx.closePath();
-			ctx.fill();
-		}
+		var x = hand.x,
+			y = hand.y;
 
 		ctx.globalAlpha = tc.alpha;
 		ctx.beginPath();
@@ -131,6 +102,43 @@ function TouchClock( canvas, callback )
 			Math.TAU,
 			false );
 		ctx.fill();
+	}
+
+	function drawHand( hand )
+	{
+		var a = hand.angle-Math.PI2,
+			cos = Math.cos( a ),
+			sin = Math.sin( a ),
+			r = hand.radius,
+			x = centerX+cos*r,
+			y = centerY+sin*r;
+
+		hand.x = x;
+		hand.y = y;
+
+		if( hand !== hands.duration )
+		{
+			var sr = tc.handWidth*3*ratio,
+				mr = r*.25,
+				mx = centerX+cos*mr,
+				my = centerY+sin*mr,
+				scos = cos*sr,
+				ssin = sin*sr,
+				lx = mx-ssin,
+				ly = my+scos,
+				rx = mx+ssin,
+				ry = my-scos;
+
+			ctx.beginPath();
+			ctx.moveTo( centerX | 0, centerY | 0 );
+			ctx.lineTo( lx | 0, ly | 0 );
+			ctx.lineTo( x | 0, y | 0 );
+			ctx.lineTo( rx | 0, ry | 0 );
+			ctx.closePath();
+			ctx.fill();
+		}
+
+		drawHandle( hand );
 	}
 
 	function drawDuration()
@@ -598,10 +606,13 @@ function TouchClock( canvas, callback )
 		width = w*ratio;
 		height = h*ratio;
 
-		canvas.width = width;
-		canvas.height = height;
-		canvas.style.width = w+"px";
-		canvas.style.height = h+"px";
+		if( ratio !== 1 )
+		{
+			canvas.width = width;
+			canvas.height = height;
+			canvas.style.width = w+"px";
+			canvas.style.height = h+"px";
+		}
 
 		centerX = width >> 1;
 		centerY = height >> 1;
@@ -691,15 +702,13 @@ function TouchClock( canvas, callback )
 		now.getMinutes(),
 		120 );
 
-	return {
-		getStartTimeAsString: getStartTimeAsString,
-		getStopTimeAsString: getStopTimeAsString,
-		getDurationAsString: getDurationAsString,
-		getStartTime: getStartTime,
-		getStopTime: getStopTime,
-		getDuration: getDuration,
-		setHands: setHands,
-		resize: resize,
-		draw: draw
-	};
+	this.getStartTimeAsString = getStartTimeAsString;
+	this.getStopTimeAsString = getStopTimeAsString;
+	this.getDurationAsString = getDurationAsString;
+	this.getStartTime = getStartTime;
+	this.getStopTime = getStopTime;
+	this.getDuration = getDuration;
+	this.setHands = setHands;
+	this.resize = resize;
+	this.draw = draw;
 }
