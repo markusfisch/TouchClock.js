@@ -502,7 +502,7 @@ function TouchClock( canvas, callback )
 				var t = e.touches[n];
 
 				pointerX[n] = t.clientX;
-				py = pointerY[n] = t.clientY;
+				pointerY[n] = t.clientY;
 			}
 		}
 		else if( typeof e.clientX !== "undefined" )
@@ -652,8 +652,6 @@ function TouchClock( canvas, callback )
 
 		hands.hour.last = hands.hour.angle;
 		hands.minute.last = hands.minute.angle;
-
-		draw();
 	}
 
 	function addEventListener( e, name, handler )
